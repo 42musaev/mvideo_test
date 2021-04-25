@@ -24,5 +24,5 @@ Maximum RAM consumption by the server is 5 GB.
 When choosing between lower speed of response on the request and lower consumption of RAM, preference should be given to the lower speed of response.
 
 ## Results
-API response time 6~ ms
-RAM 12.6~ GB
+API response time 6~ ms <br>
+RAM 12.6~ GB 
