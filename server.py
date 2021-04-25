@@ -9,22 +9,26 @@ import json
 
 
 
-def read_file_to_dict(filename):
-    x_dixt = defaultdict(list)
-    with open(filename, 'r') as f:
-        data = csv.DictReader(f, fieldnames=['sku', 'r_sku', 'rank'])
-        iter = 0
-        for row in data:
-            iter += 1
-            if iter == 1000000:
-                break
-            x_dixt[row['sku']].append({row['r_sku']: row['rank']})
-    return dict(x_dixt)
+def gen_read_file(filename):
+    with open(filename) as f:
+        for row in f:
+            yield row.splitlines()[0].split(',')
+
+def list_line_to_dict(gen):
+    dict_x = defaultdict(list)
+    for row in gen:
+        dict_x[row[0]].append(
+            [
+                row[1],
+                row[2]
+            ]
+        )
+    return dict_x
 
 
 def sort_dict_by_list_value(data):
     for k, v in data.items():
-        data[k].sort(key=lambda d: sorted(list(d.values()), reverse=True))
+        data[k].sort(key=lambda row: row[1])
     return data
 
 
@@ -36,13 +40,14 @@ def get_sku(data, value, rank=0):
     if rank == 0:
         return result
     else:
-        return [d for d in result for k, v in d.items() if float(v) >= rank]
+        return [[k, v] for k, v in result if float(v) >= float(rank)]
 
 
 
 print('Load structure to RAM')
-f = read_file_to_dict('recommends.csv')
-SORTED_DICT = sort_dict_by_list_value(f)
+gen = gen_read_file('recommends.csv')
+data = list_line_to_dict(gen)
+SORTED_DICT = sort_dict_by_list_value(data)
 print('Finish load')
 
 
@@ -57,6 +62,8 @@ class Handler(BaseHTTPRequestHandler):
         params = self.get_params()
         if params.get('value'):           
             if params.get('rank'):
+                print()
+                print(params.get('rank')[0])
                 data = get_sku(SORTED_DICT, params.get('value')[0], float(params.get('rank')[0]))
             else:
                 data = get_sku(SORTED_DICT, params.get('value')[0])
@@ -73,8 +80,9 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    print('Start server')
-    http_server = HTTPServer(('0.0.0.0', 5000), Handler)
+    address_port = ('0.0.0.0', 5000)
+    print(f'Start server http://{address_port[0]}:{address_port[1]}')
+    http_server = HTTPServer(address_port, Handler)
     http_server.serve_forever()
 
 
